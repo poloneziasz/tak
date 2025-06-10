@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>dowalony quiz</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      background-image: url('tak.jpg');
+      background-size: cover;
+      background-position: center;
+      background-attachment: fixed;
+      margin: 0;
+      padding: 0;
+      color: #fff;
+    }
+
+    #game-container {
+      margin: 50px auto;
+      background-color: rgba(0, 0, 0, 0.7);
+      padding: 30px;
+      border-radius: 15px;
+      max-width: 600px;
+      width: 90%;
+      box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+      position: relative;
+    }
+
+    #question {
+      font-size: 22px;
+      margin-bottom: 25px;
+      min-height: 60px;
+    }
+
+    #timer {
+      font-size: 18px;
+      color: #ff4d4d;
+      font-weight: bold;
+      margin-bottom: 15px;
+    }
+
+    #score {
+      font-size: 16px;
+      margin-bottom: 10px;
+    }
+
+    #question-counter {
+      font-size: 16px;
+      margin-bottom: 15px;
+      color: #00bfff;
+    }
+
+    #answers {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin: 25px auto;
+      max-width: 400px;
+      position: relative;
+    }
+
+    button.answer-btn {
+      padding: 12px;
+      font-size: 16px;
+      cursor: pointer;
+      border: none;
+      border-radius: 8px;
+      background-color: #00bfff;
+      color: white;
+      transition: all 0.2s;
+    }
+
+    button.answer-btn:hover {
+      background-color: #0099cc;
+      transform: scale(1.02);
+    }
+
+    #result {
+      margin: 20px 0;
+      font-size: 18px;
+      min-height: 24px;
+      font-weight: bold;
+    }
+
+    #celebration-gif, #fail-gif {
+      display: none;
+      max-width: 90%;
+      height: auto;
+      margin: 20px auto;
+      border-radius: 10px;
+    }
+
+    #hint-container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 20px;
+      padding: 0 10px;
+    }
+
+    #hint-btn {
+      padding: 8px 15px;
+      font-size: 14px;
+      background-color: #ff9900;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    }
+
+    #hint-btn:hover {
+      background-color: #e68a00;
+      transform: translateY(-2px);
+    }
+
+    #hint-btn:disabled {
+      background-color: #666;
+      cursor: not-allowed;
+      opacity: 0.7;
+      transform: none;
+    }
+
+    #hint-counter {
+      font-size: 14px;
+      color: #fff;
+      background-color: rgba(0, 0, 0, 0);
+      padding: 5px 10px;
+      border-radius: 15px;
+    }
+
+    #restart-btn {
+      margin: 20px auto;
+      padding: 10px 20px;
+      font-size: 16px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      display: none;
+      transition: all 0.3s;
+    }
+
+    #restart-btn:hover {
+      background-color: #45a049;
+      transform: scale(1.05);
+    }
+
+    @keyframes fadeOut {
+      from { opacity: 1; transform: scale(1); }
+      to { opacity: 0; transform: scale(0); }
+    }
+
+    .fade-out {
+      animation: fadeOut 0.5s forwards;
+      pointer-events: none;
+    }
+
+    #ready-btn {
+      margin-top: 25px;
+      font-size: 18px;
+      padding: 12px 30px;
+      background: none;
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      display: block;
+      letter-spacing: 2px;
+      opacity: 1;
+      transition: opacity 0.3s;
+      animation: blink 1s step-end infinite;
+      outline: none;
+    }
+    #ready-btn:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
+      animation: none;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.2; }
+    }
+
+    /* Styl dla panelu wyboru czasu */
+    #time-select-panel {
+      margin-bottom: 30px;
+      background: rgba(0,0,0,0.5);
+      border-radius: 12px;
+      padding: 18px 0 10px 0;
+    }
+    #time-slider {
+      width: 220px;
+      vertical-align: middle;
+      margin: 0 10px;
+    }
+    #start-quiz-btn {
+      padding: 8px 22px;
+      font-size: 16px;
+      border-radius: 8px;
+      background: #4CAF50;
+      color: #fff;
+      border: none;
+      cursor: pointer;
+      margin-left: 10px;
+    }
+    #start-quiz-btn:hover {
+      background: #388e3c;
+    }
+
+    /* Ukryj wszystko poza wyborem czasu przed startem quizu */
+    .quiz-content {
+      display: none;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>dowalony quiz z chemi</h1>
+  <div id="game-container">
+    <!-- Panel wyboru czasu na pytanie -->
+    <div id="time-select-panel">
+      <label for="time-slider" style="font-size:18px;">
+        Wybierz czas na pytanie: <span id="time-slider-value" style="color:#00bfff;font-weight:bold;">12</span>s
+      </label>
+      <input type="range" id="time-slider" min="5" max="30" value="12" step="1">
+      <button id="start-quiz-btn">Zatwierdź</button>
+    </div>
+    <div class="quiz-content">
+      <div id="score">Punkty: 0</div>
+      <div id="question-counter">Pytanie: 0/0</div>
+      <div id="question">Ładowanie pytań...</div>
+      <div id="timer">Czas: 12s</div>
+      <div id="answers"></div>
+      <div id="hint-counter">Podpowiedzi: 3</div>
+      <button id="hint-btn">Podpowiedź</button>
+      <div id="result"></div>
+      <img id="celebration-gif" src="drink.gif" alt="Celebration">
+      <img id="fail-gif" src="fall.gif" alt="Fail">
+      <button id="restart-btn">Zagraj ponownie</button>
+    </div>
+  </div>
+
+  <script>
+    // --- Nowe zmienne do wyboru czasu ---
+    let selectedTimePerQuestion = 12;
+    let quizStarted = false;
+
+    // Obsługa slidera i przycisku start
+    const timeSlider = document.getElementById("time-slider");
+    const timeSliderValue = document.getElementById("time-slider-value");
+    const startQuizBtn = document.getElementById("start-quiz-btn");
+    const timeSelectPanel = document.getElementById("time-select-panel");
+    const quizContent = document.querySelector('.quiz-content');
+
+    // Ukryj quiz-content na starcie
+    quizContent.style.display = "none";
+
+    timeSlider.addEventListener("input", function() {
+      timeSliderValue.innerText = this.value;
+      selectedTimePerQuestion = parseInt(this.value, 10);
+    });
+
+    startQuizBtn.addEventListener("click", function() {
+      quizStarted = true;
+      timeSelectPanel.style.display = "none";
+      quizContent.style.display = "block";
+      startGame();
+    });
+
+    // --- Wszystkie pytania (stare + nowe) ---
+    const questions = [
+      {
+        question: "Jaki jest wzór metanu?",
+        correct: "CH4",
+        options: ["CH4", "C2H6", "C3H8", "C2H5OH"]
+      },
+      {
+        question: "Jaki jest wzór etanu?",
+        correct: "C2H6",
+        options: ["C2H4", "C2H5OH", "C2H6", "CH3OH"]
+      },
+      {
+        question: "Jaki jest wzór propenu?",
+        correct: "C3H6",
+        options: ["C3H8", "C3H6", "C2H6", "CH4"]
+      },
+      {
+        question: "Jaki jest wzór etynu?",
+        correct: "C2H2",
+        options: ["C2H4", "C2H2", "CH3OH", "C2H6"]
+      },
+      {
+        question: "Jaki jest wzór kwasu octowego?",
+        correct: "CH3COOH",
+        options: ["CH3COOH", "HCOOH", "C2H5OH", "CH4"]
+      },
+      {
+        question: "Jaki jest wzór butanu?",
+        correct: "C4H10",
+        options: ["C4H10", "C3H8", "C2H5OH", "CH4"]
+      },
+      {
+        question: "Jaki jest wzór metanolu?",
+        correct: "CH3OH",
+        options: ["CH3OH", "C2H5OH", "CH4", "HCOOH"]
+      },
+      {
+        question: "Jakie właściwości kwasu mrówkowego wykorzystują mrówki?",
+        correct: "działanie drażniące i odstraszające",
+        options: [
+          "właściwości odżywcze",
+          "działanie drażniące i odstraszające",
+          "zdolność do rozpuszczania szkła",
+          "właściwości barwiące"
+        ]
+      },
+      {
+        question: "Dlaczego estry są często używane jako substancje zapachowe?",
+        correct: "mają przyjemne, owocowe zapachy",
+        options: [
+          "są bardzo trwałe chemicznie",
+          "mają przyjemne, owocowe zapachy",
+          "są tanie w produkcji",
+          "rozpuszczają się w wodzie"
+        ]
+      },
+      {
+        question: "Na czym polega reakcja estryfikacji?",
+        correct: "reakcja kwasu karboksylowego z alkoholem",
+        options: [
+          "reakcja alkoholu z metalem",
+          "reakcja kwasu karboksylowego z alkoholem",
+          "utlenianie alkoholi",
+          "hydroliza węglowodanów"
+        ]
+      },
+      {
+        question: "Dlaczego butan i 2-metylopropan są izomerami?",
+        correct: "mają ten sam wzór sumaryczny ale różną budowę",
+        options: [
+          "mają ten sam wzór sumaryczny ale różną budowę",
+          "mają identyczne właściwości fizyczne",
+          "sou pochodnymi tego samego węglowodoru",
+          "występują w tych samych warunkach naturalnych"
+        ]
+      },
+      {
+        question: "Dlaczego tworzywa sztuczne stanowią problem dla środowiska?",
+        correct: "są trudno biodegradowalne",
+        options: [
+          "są trudno biodegradowalne",
+          "są zbyt lekkie",
+          "mają nieprzyjemny zapach",
+          "są zbyt reaktywne chemicznie"
+        ]
+      },
+      {
+        question: "Jaką funkcję pełni grupa hydroksylowa w cząsteczkach cukrów?",
+        correct: "umożliwia tworzenie wiązań wodorowych",
+        options: [
+          "nadaje słodki smak",
+          "umożliwia tworzenie wiązań wodorowych",
+          "zapewnia kolor",
+          "chroni przed utlenianiem"
+        ]
+      },
+      {
+        question: "Jak można odróżnić alkohol pierwszorzędowy od drugorzędowego?",
+        correct: "w reakcjach utleniania",
+        options: [
+          "po rozpuszczalności w wodzie",
+          "w reakcjach utleniania",
+          "po temperaturze wrzenia",
+          "po gęstości"
+        ]
+      },
+      {
+        question: "Jaki jest wzór kwasu mrówkowego?",
+        correct: "HCOOH",
+        options: ["CH3COOH", "HCOOH", "C2H2", "CH4"]
+      },
+      {
+        question: "Który alkohol jest składnikiem napojów alkoholowych?",
+        correct: "etanol",
+        options: ["metanol", "etanol", "propanol", "glicerol"]
+      },
+      {
+        question: "Co otrzymasz po utlenieniu alkoholu I rzędowego?",
+        correct: "aldehyd",
+        options: ["aldehyd", "keton", "alkohol II rzędowy", "fenol"]
+      },
+      {
+        question: "Który z wymienionych węglowodorów jest głównym składnikiem gazu ziemnego?",
+        correct: "metan",
+        options: ["etan", "metan", "propan", "butan"]
+      },
+      {
+        question: "w reakcji alkoholu polihydroksylwego z Cu(OH)2 co się stanie?",
+        correct: "osad się rozpuści i powstanie szafirowy roztwór",
+        options: [
+          "osad się rozpuści i powstanie szafirowy roztwór",
+          "osad się rozpuści i powstanie granatowy roztwór",
+          "osad się rozpuści i powstanie niebieski roztwór",
+          "osad się nie rozpuści i powstanie szafirowy roztwór"
+        ]
+      },
+      {
+        question: "Po wpływem czego dochodzi do reakcji fermentacji?",
+        correct: "drożdże",
+        options: ["światło", "temperatura", "katalizator", "drożdże"]
+      },
+      {
+        question: "Im jest bardziej rozgałęziona cząsteczka alkoholu monohydroksylowego tym...",
+        correct: "zwiększa się jego temperatura wrzenia",
+        options: ["zmniejsza się jego temperatura wrzenia", "zwiększa się jego temperatura wrzenia"]
+      },
+      {
+        question: "Czy alkohole monohydroksylowe reagują z sodem?",
+        correct: "tak",
+        options: ["tak", "nie"]
+      },
+      {
+        question: "Jakie właściwości mają alkohole polihydroksylowe?",
+        correct: [
+          "mają większą gęstość niż monohydroksylowe alkohole",
+          "dobrze rozpuszczają się w wodzie",
+          "mają małą lotność"
+        ],
+        options: [
+          "mają większą gęstość niż monohydroksylowe alkohole",
+          "dobrze rozpuszczają się w wodzie",
+          "są dobrymi rozpuszczalnikami tłuszczy",
+          "mają małą lotność"
+        ]
+      },
+      {
+        question: "Jaki osad się wydzieli w probówce z glicerolem po dodaniu go do roztworu Cu(OH)₂?",
+        correct: "szafirowy",
+        options: ["czarny", "ceglasto czerwony", "srebrzysty", "szafirowy"]
+      },
+      {
+        question: "W jakiej formie występuje fenol?",
+        correct: "stały",
+        options: ["ciekły", "gazowy", "stały"]
+      },
+      {
+        question: "Jaką barwę przyjmuje roztwór fenolu po dodaniu do niego jonów żelaza(III)?",
+        correct: "fioletową",
+        options: ["fioletową", "szarą", "niebieską", "czerwoną"]
+      },
+      {
+        question: "Nazwa zwyczajna metanolu to...",
+        correct: "aldehyd mrówkowy",
+        options: ["aldehyd propinowy", "aldehyd mrówkowy", "aldehyd masłowy"]
+      },
+      {
+        question: "Formalina to ilu procentowy roztwór wodny?",
+        correct: "40%",
+        options: ["30%", "60%", "40%", "50%"]
+      },
+      {
+        question: "Co wytworzy się po reakcji Tollensa?",
+        correct: "srebrzysty nalot",
+        options: ["srebrzysty nalot", "ceglasty osad", "czarny osad"]
+      },
+      {
+        question: "Czy ketony są bardziej lotne niż alkohole?",
+        correct: "tak",
+        options: ["tak", "nie"]
+      },
+      {
+        question: "Jaką reakcją można odróżnić ketony od aldehydów?",
+        correct: "Trommera",
+        options: ["po reakcji z sodem", "Trommera","reakcja nitrowania", "reakcja z Cu(OH)₂"]
+      },
+      {
+        question: "Która substancja jest najbardziej trująca?",
+        correct: "metanal",
+        options: ["glicerol", "glikol etylowy", "etanol", "aceton", "metanal"]
+      },
+      {
+        question: "jaka jest grupa funkcyjna aldehydów?",
+        correct: "CHO",
+        options: ["-CHO", "-OH", "C=O","C-O-C"]
+      },
+      {
+        question: "jaka jest grupa funkcyjna ketonów?",
+        correct: "C=O",
+        options: ["-CHO", "-OH", "C=O","C-O-C"]
+      },
+      {
+        question: "jaka jest grupa funkcyjna alkoholi?",
+        correct: "-OH",
+        options: ["-CHO", "-OH", "C=O","C-O-C"]
+      },
+      {
+        question: "jaka jest grupa funkcyjna aldehydów?",
+        correct: "CHO",
+        options: ["-CHO", "-OH", "C=O","C-O-C"]
+      },
+      {
+        question: "Czy fenol jest słabszym kwasem niż HCL?",
+        correct: "tak",
+        options: ["tak", "nie", "nie wiem"]
+      },
+      {
+        question: "co nam da reakcja fenolu z wodą?",
+        correct: "CH6H5OH",
+        options: ["C6H5ONa", "nic", "C9H19CHO","C2H5OH"]
+      },
+    ];
+
+    const insultMessages = [
+      "Serio? na głowe upadłeś?",
+      "Kurde faja",
+      "pani boruń cię zbije",
+      "umiesz mniej niż wojtek",
+      "dobra odpowidź jak dla debila",
+      "naucz się i wróć",
+      "ERROR MÓZGU",
+      "ERROR 404 brain not found",
+      "ponośisz konsekwencje swoich czynów nie jak Tomasz Hajto",
+      "1234 twoja stara na ciebie nie patrzy",
+      "https://www.youtube.com/watch?v=RayToE35mDM",
+      "chyba się z drzewa downów urwałeś?",
+      "twój mózg działa jak gospodarka narodowa polski. Wcale.",
+      "kocham piwo",
+      "W kociołkach bigos grzano; w słowach wydać trudno  Bigosu smak przedziwny, kolor i woń cudną;  Słów tylko brzęk usłyszy i rymów porządek,  Ale treści ich miejski nie pojmie żołądek.  Aby cenić litewskie pieśni i potrawy,  Trzeba mieć zdrowie, na wsi żyć, wracać z obławy.    Przecież i bez tych przypraw potrawą nie lada  Jest bigos, bo się z jarzyn dobrych sztucznie składa.  Bierze się doń siekana, kwaszona kapusta,  Która, wedle przysłowia, sama idzie w usta;  Zamknięta w kotle, łonem wilgotnym okrywa  Wyszukanego cząstki najlepsze mięsiwa;  I praży się, aż ogień wszystkie z niej wyciśnie  Soki żywne, aż z brzegów naczynia war pryśnie  I powietrze dokoła zionie aromatem.    Bigos już gotów. Strzelcy z trzykrotnym wiwatem,  Zbrojni łyżkami, biegą i bodą naczynie,  Miedź grzmi, dym bucha, bigos jak kamfora ginie,  Zniknął, uleciał; tylko w czeluściach saganów  Wre para, jak w kraterze zagasłych wulkanów.",
+      
+    ];
+
+    // Zmienne gry
+    let currentQuestionIndex = 0;
+    let timeLeft = 12;
+    let timerInterval;
+    let score = 0;
+    let shuffledQuestions = [];
+    let totalQuestions = 0;
+    let hintsLeft = 3;
+    let currentAnswers = [];
+
+    function shuffleArray(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+      return array;
+    }
+
+    function startGame() {
+      if (!quizStarted) return;
+      currentQuestionIndex = 0;
+      score = 0;
+      hintsLeft = 3;
+      updateHintCounter();
+
+      shuffledQuestions = shuffleArray([...questions])
+        .slice(0, 20)
+        .map(q => {
+          return {
+            question: q.question,
+            correct: q.correct,
+            options: shuffleArray([...q.options])
+          };
+        });
+
+      totalQuestions = shuffledQuestions.length;
+
+      document.getElementById("celebration-gif").style.display = "none";
+      document.getElementById("fail-gif").style.display = "none";
+      document.getElementById("restart-btn").style.display = "none";
+      document.getElementById("hint-btn").style.display = "inline-block";
+
+      const readyBtn = document.getElementById("ready-btn");
+      if (readyBtn) readyBtn.remove();
+
+      updateScore();
+      updateQuestionCounter();
+      showQuestion();
+    }
+
+    function showQuestion() {
+      clearInterval(timerInterval);
+      timeLeft = selectedTimePerQuestion;
+      document.getElementById("result").innerText = "";
+      document.getElementById("timer").innerText = `Czas: ${timeLeft}s`;
+
+      const q = shuffledQuestions[currentQuestionIndex];
+      document.getElementById("question").innerText = q.question;
+
+      const answersDiv = document.getElementById("answers");
+      answersDiv.innerHTML = "";
+      currentAnswers = [...q.options];
+
+      q.options.forEach(option => {
+        const btn = document.createElement("button");
+        btn.innerText = option;
+        btn.classList.add("answer-btn");
+        btn.onclick = () => checkAnswer(option);
+        answersDiv.appendChild(btn);
+      });
+
+      updateQuestionCounter();
+      startTimer();
+    }
+
+    function updateQuestionCounter() {
+      document.getElementById("question-counter").innerText =
+        `Pytanie: ${currentQuestionIndex + 1}/${totalQuestions}`;
+    }
+
+    function updateScore() {
+      document.getElementById("score").innerText = `Punkty: ${score}`;
+    }
+
+    function updateHintCounter() {
+      document.getElementById("hint-counter").innerText = `Podpowiedzi: ${hintsLeft}`;
+    }
+
+    function startTimer() {
+      timerInterval = setInterval(() => {
+        timeLeft--;
+        document.getElementById("timer").innerText = `Czas: ${timeLeft}s`;
+        if (timeLeft <= 0) {
+          endGame("Przegrałeś! Czas się skończył.", true);
+        }
+      }, 1000);
+    }
+
+    // Poprawiona obsługa odpowiedzi (obsługuje tablicę correct)
+    function checkAnswer(selected) {
+      clearInterval(timerInterval);
+      const correct = shuffledQuestions[currentQuestionIndex].correct;
+      let isCorrect = false;
+
+      if (Array.isArray(correct)) {
+        isCorrect = correct.includes(selected);
+      } else {
+        isCorrect = selected === correct;
+      }
+
+      if (isCorrect) {
+        score++;
+        updateScore();
+        document.getElementById("result").innerText = "Dobrze!";
+      } else {
+        const insult = insultMessages[Math.floor(Math.random() * insultMessages.length)];
+        document.getElementById("result").innerText = `Źle! ${insult}`;
+      }
+
+      currentQuestionIndex++;
+      if (currentQuestionIndex >= shuffledQuestions.length) {
+        endGame(`Gratulacje! Twój wynik: ${score}/${totalQuestions}`, false);
+      } else {
+        setTimeout(showQuestion, 1500);
+      }
+    }
+
+    function useHint() {
+      if (hintsLeft <= 0) return;
+
+      const answers = document.querySelectorAll('.answer-btn');
+      const correctAnswer = shuffledQuestions[currentQuestionIndex].correct;
+      let wrongAnswers = [];
+
+      answers.forEach(btn => {
+        // Obsługa tablicy correct
+        if (
+          (Array.isArray(correctAnswer) && !correctAnswer.includes(btn.innerText)) ||
+          (!Array.isArray(correctAnswer) && btn.innerText !== correctAnswer)
+        ) {
+          if (!btn.classList.contains('fade-out')) {
+            wrongAnswers.push(btn);
+          }
+        }
+      });
+
+      if (wrongAnswers.length > 1) {
+        const randomIndex = Math.floor(Math.random() * wrongAnswers.length);
+        wrongAnswers[randomIndex].classList.add('fade-out');
+
+        hintsLeft--;
+        updateHintCounter();
+
+        if (hintsLeft <= 0) {
+          document.getElementById("hint-btn").style.opacity = "0.5";
+          document.getElementById("hint-btn").style.cursor = "not-allowed";
+        }
+      }
+    }
+
+    function showReadyButton() {
+      const gameContainer = document.getElementById("game-container");
+      let readyBtn = document.getElementById("ready-btn");
+      if (readyBtn) readyBtn.remove();
+
+      readyBtn = document.createElement("button");
+      readyBtn.id = "ready-btn";
+      readyBtn.disabled = true;
+      readyBtn.style.background = "none";
+      gameContainer.appendChild(readyBtn);
+
+      const text = "Jesteś gotów?";
+      let i = 0;
+      readyBtn.innerText = "";
+
+      setTimeout(() => {
+        const typeInterval = setInterval(() => {
+          readyBtn.innerText += text[i];
+          i++;
+          if (i >= text.length) {
+            clearInterval(typeInterval);
+            readyBtn.disabled = false;
+            readyBtn.style.opacity = "1";
+          }
+        }, 180);
+      }, 10000);
+
+      readyBtn.onclick = () => {
+        window.location.href = "hehe.html";
+      };
+    }
+
+    function endGame(message, isFail) {
+      clearInterval(timerInterval);
+      document.querySelector('.quiz-content').style.display = "block";
+      document.getElementById("result").innerText = message;
+      document.getElementById("question").innerText = "";
+      document.getElementById("timer").innerText = "";
+      document.getElementById("answers").innerHTML = "";
+      document.getElementById("hint-btn").style.display = "none";
+      document.getElementById("hint-counter").style.display = "none";
+      document.getElementById("restart-btn").style.display = "inline-block";
+
+      if (isFail) {
+        document.getElementById("fail-gif").style.display = "block";
+        const readyBtn = document.getElementById("ready-btn");
+        if (readyBtn) readyBtn.remove();
+      } else {
+        document.getElementById("celebration-gif").style.display = "block";
+        showReadyButton();
+      }
+    }
+
+    document.getElementById("hint-btn").addEventListener("click", useHint);
+
+    document.getElementById("restart-btn").addEventListener("click", function() {
+      document.getElementById("hint-btn").style.opacity = "0.7";
+      document.getElementById("hint-btn").style.cursor = "pointer";
+      document.getElementById("hint-counter").style.display = "block";
+      document.getElementById("fail-gif").style.display = "none";
+      document.getElementById("celebration-gif").style.display = "none";
+      quizStarted = false;
+      document.querySelector('.quiz-content').style.display = "none";
+      timeSelectPanel.style.display = "block";
+    });
+
+    // Nie uruchamiaj quizu automatycznie!
+    // startGame();
+  </script>
+</body>
+</html>
